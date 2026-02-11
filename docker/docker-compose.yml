@@ -1,0 +1,21 @@
+version: '3.5'
+# El nombre separa el grupo en Docker Desktop
+name: setup-project
+
+networks:
+  setup-network:
+    name: setup-network
+    driver: bridge
+
+services:
+  app:
+    container_name: cd5-setup-back
+    build:
+      context: ./
+      dockerfile: Dockerfile
+    volumes:
+      - ../:/var/www/httpdocs
+    networks:
+      - setup-network
+    ports:
+      - "5017:80"
