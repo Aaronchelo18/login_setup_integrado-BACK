@@ -13,13 +13,19 @@ class ModuloController extends Controller
 {
     use ApiResponse;
 
+    /**
+     * Recupera los módulos según el id_persona (enviado desde el Front)
+     */
     public function index(Request $request)
     {
-        // Capturamos el id_rol que enviamos desde el Frontend
-        $idRol = $request->query('id_rol');
+        // Capturamos el id_persona enviado desde Angular
+        $idPersona = $request->query('id_persona');
 
-        // El filtrado ocurre dentro de ModuloData::getAll
-        $r = ModuloData::getAll($idRol); 
+        if (!$idPersona) {
+            return $this->error('El parámetro id_persona es requerido para cargar los módulos.', 400);
+        }
+
+        $r = ModuloData::getAll($idPersona); 
         
         return $r['success'] 
             ? $this->ok($r['data'], 'Módulos recuperados correctamente') 

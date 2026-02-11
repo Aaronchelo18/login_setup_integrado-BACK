@@ -13,13 +13,14 @@ class ModuloData
      * Obtiene los módulos raíz asociados a una persona según sus roles.
      * Basado en el query: efeso.usuario -> usuario_rol -> rol -> rol_modulo -> modulo
      */
-    public static function getAll($idPersona = null): array
+   public static function getAll($idPersona = null): array
     {
         try {
             if (!$idPersona) {
                 return ['success' => false, 'message' => 'ID de persona no proporcionado.'];
             }
 
+            // Usamos el esquema efeso tal como está en tu base de datos
             $rows = DB::table('efeso.usuario as u')
                 ->join('efeso.usuario_rol as ur', 'u.id_persona', '=', 'ur.id_persona')
                 ->join('efeso.rol as r', 'ur.id_rol', '=', 'r.id_rol')
@@ -29,7 +30,7 @@ class ModuloData
                     'm.id_modulo',
                     'm.id_parent',
                     DB::raw('(m.nivel)::int AS nivel'),
-                    'm.nombre as modulo_nombre',
+                    'm.nombre', // Aseguramos que devuelva 'nombre' para el Front
                     'm.url',
                     'm.imagen',
                     'm.estado'
