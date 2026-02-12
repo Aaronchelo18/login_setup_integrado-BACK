@@ -50,6 +50,132 @@ class ModuloData
         }
     }
 
+
+    // GET /api/modulo/admin-list
+    public static function listAllAdmin(): array
+{
+    try {
+        $sql = "
+            SELECT 
+                id_modulo, 
+                id_parent, 
+                nombre, 
+                url, 
+                imagen, 
+                estado
+            FROM efeso.modulo
+            WHERE id_parent = 0
+            ORDER BY id_modulo ASC
+        ";
+
+        $data = DB::select($sql);
+
+        return ['success' => true, 'data' => $data];
+    } catch (\Throwable $e) {
+        return ['success' => false, 'message' => 'Error en DB: ' . $e->getMessage()];
+    }
+}
+
+// POST /api/config/setup/modulos (Admin)
+public static function storeAdmin(array $params): array
+{
+    try {
+        $dataToInsert = [
+            'nombre'    => $params['nombre'],
+            'url'       => $params['url'] ?? null,
+            'imagen'    => $params['imagen'] ?? 'default.png',
+            'estado'    => $params['estado'] ?? 1,
+            'id_parent' => $params['id_parent'] ?? 0,
+            'nivel'     => $params['nivel'] ?? 0, 
+        ];
+
+        // Insertar y obtener el ID generado
+        $id = DB::table('efeso.modulo')->insertGetId($dataToInsert);
+
+        // Recuperar el registro para confirmación
+        $newRecord = DB::table('efeso.modulo')
+            ->where('id_modulo', $id)
+            ->first();
+
+        return ['success' => true, 'data' => $newRecord];
+
+    } catch (\Throwable $e) {
+        return ['success' => false, 'message' => 'Error al crear módulo: ' . $e->getMessage()];
+    }
+}
+
+// PUT /api/config/setup/modulos/{id} (Admin)
+public static function updateAdmin(int $id, array $params): array
+{
+    try {
+        $dataToUpdate = [];
+        // Definimos qué campos permitimos
+        $fields = ['nombre', 'url', 'imagen', 'estado', 'id_parent'];
+
+        foreach ($fields as $field) {
+            if (array_key_exists($field, $params)) {
+                $value = $params[$field];
+
+                // Normalizar el estado: Convertir true/false o "1"/"0" a entero 1/0
+                if ($field === 'estado') {
+                    $value = ($value === true || $value === 1 || $value === '1') ? 1 : 0;
+                }
+                
+                // Evitar que el id_parent sea null si la DB no lo permite
+                if ($field === 'id_parent' && is_null($value)) {
+                    $value = 0;
+                }
+
+                $dataToUpdate[$field] = $value;
+            }
+        }
+
+        // Ejecutar el update filtrando por id_modulo
+        DB::table('efeso.modulo')
+            ->where('id_modulo', $id)
+            ->update($dataToUpdate);
+
+        $updatedRecord = DB::table('efeso.modulo')->where('id_modulo', $id)->first();
+
+        return ['success' => true, 'data' => $updatedRecord];
+
+    } catch (\Throwable $e) {
+        // El error 500 se captura aquí. El mensaje te dirá exactamente qué columna falla.
+        return ['success' => false, 'message' => 'Error en DB: ' . $e->getMessage()];
+    }
+}
+
+// DELETE /api/config/setup/modulos/{id} (Admin)
+public static function deleteAdmin(int $id): array
+{
+    try {
+        // 1. Verificar si tiene submódulos (hijos)
+        $hasChildren = DB::table('efeso.modulo')
+            ->where('id_parent', $id)
+            ->exists();
+
+        if ($hasChildren) {
+            return [
+                'success' => false, 
+                'message' => 'No se puede eliminar: el módulo tiene submódulos asignados.'
+            ];
+        }
+
+        $deleted = DB::table('efeso.modulo')
+            ->where('id_modulo', $id)
+            ->delete();
+
+        if ($deleted) {
+            return ['success' => true];
+        }
+
+        return ['success' => false, 'message' => 'El módulo no existe o ya fue eliminado.'];
+
+    } catch (\Throwable $e) {
+        return ['success' => false, 'message' => 'Error al eliminar: ' . $e->getMessage()];
+    }
+}
+    
     public static function show($id): array
     {
         try {
