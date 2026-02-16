@@ -19,7 +19,7 @@
 
 #### 3. Para poder acceder al contenedor por bash ejecute (el nombre del servicio lo pueden visualizar en el archivo docker-compose.yml): 
 
-```docker exec -it cd5-setup-back bash```
+```docker exec -it cd5-login-setup-integrado-back bash```
 
 #### 4. Una vez dentro del contendor, instalar composer y darle permisos a la aplicación
 

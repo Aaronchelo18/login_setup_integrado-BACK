@@ -1,6 +1,6 @@
 version: '3.5'
 # El nombre separa el grupo en Docker Desktop
-name: setup-project
+name: login-setup-integrado
 
 networks:
   setup-network:
@@ -9,7 +9,7 @@ networks:
 
 services:
   app:
-    container_name: cd5-setup-back
+    container_name: cd5-login-setup-integrado-back
     build:
       context: ./
       dockerfile: Dockerfile

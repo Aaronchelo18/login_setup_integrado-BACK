@@ -34,10 +34,10 @@ use App\Http\Controllers\Users\UserAccessController;
 
 /*
 |--------------------------------------------------------------------------
-| 1. AUTENTICACIÓN PÚBLICA (Login)
+| 1. AUTENTICACIÓN (Login & Auth)
 |--------------------------------------------------------------------------
 */
-Route::prefix('config/auth')->group(function () {
+Route::prefix('auth')->group(function () {
     // Google Auth
     Route::get('google/redirect', [AuthController::class, 'redirectToGoogle']);
     Route::get('google/callback', [AuthController::class, 'handleGoogleCallback']);
@@ -46,6 +46,9 @@ Route::prefix('config/auth')->group(function () {
     Route::post('set-password', [AuthController::class, 'setPassword']);
     Route::post('login-password', [AuthController::class, 'loginWithPassword']);
     Route::post('forgot-password', [AuthController::class, 'reenviarLinkCrearClave']);
+
+    // Ruta protegida para obtener el usuario actual
+    Route::middleware('auth:api')->get('me', [AuthController::class, 'me']);
 });
 
 /*
@@ -92,7 +95,7 @@ Route::prefix('global/config')->group(function () {
 | 3. GESTIÓN DE USUARIOS (Management)
 |--------------------------------------------------------------------------
 */
-Route::prefix('managemt')->group(function () {
+Route::prefix('iam/role-assignment')->group(function () {
     Route::get('users', [UserInfoController::class, 'index']);
     Route::get('users/{user}', [UserInfoController::class, 'show']);
     Route::post('users', [UserInfoController::class, 'store']);
@@ -103,51 +106,51 @@ Route::prefix('managemt')->group(function () {
 
 /*
 |--------------------------------------------------------------------------
-| 4. CONFIGURACIÓN DEL SISTEMA (Setup)
+| 4. CONFIGURACIÓN DEL SISTEMA (Setup / Application Management)
 |--------------------------------------------------------------------------
 */
-Route::get('modulo/admin-list', [ModuloController::class, 'listAllAdmin']);
+Route::get('application-management/modules/admin-list', [ModuloController::class, 'listAllAdmin']);
 
-Route::prefix('config/setup')->group(function () {
+Route::prefix('application-management')->group(function () {
     // Módulos: Consultas y Árboles
-    Route::get('modulos/arbol', [ModuloController::class, 'getTree']);
-    Route::get('modulos/padres', [ModuloController::class, 'getParentModules']);
-    Route::get('modulos/opciones', [ModuloController::class, 'getOptions']);
-    Route::get('modulos/jerarquia/tree', [ModuloController::class, 'getHierarchyTree']);
-    Route::get('modulos', [ModuloController::class, 'index']);
-    Route::get('modulos/{modulo}', [ModuloController::class, 'show']);
+    Route::get('modules/arbol', [ModuloController::class, 'getTree']);
+    Route::get('modules/padres', [ModuloController::class, 'getParentModules']);
+    Route::get('modules/opciones', [ModuloController::class, 'getOptions']);
+    Route::get('modules/jerarquia/tree', [ModuloController::class, 'getHierarchyTree']);
+    Route::get('modules', [ModuloController::class, 'index']);
+    Route::get('modules/{modulo}', [ModuloController::class, 'show']);
     
     // Módulos: Acciones Admin/Hierarchy
-    Route::post('modulos', [ModuloController::class, 'storeAdmin']);
-    Route::post('modulos/jerarquia', [ModuloController::class, 'createInHierarchy']);
-    Route::put('modulos/jerarquia/{id}', [ModuloController::class, 'updateHierarchyNode']);
-    Route::patch('modulos/jerarquia/{id}', [ModuloController::class, 'patchHierarchyNode']);
-    Route::delete('modulos/jerarquia/{id}', [ModuloController::class, 'deleteHierarchyNode']);
+    Route::post('modules', [ModuloController::class, 'storeAdmin']);
+    Route::post('modules/jerarquia', [ModuloController::class, 'createInHierarchy']);
+    Route::put('modules/jerarquia/{id}', [ModuloController::class, 'updateHierarchyNode']);
+    Route::patch('modules/jerarquia/{id}', [ModuloController::class, 'patchHierarchyNode']);
+    Route::delete('modules/jerarquia/{id}', [ModuloController::class, 'deleteHierarchyNode']);
 
     // Módulos: CRUD General
-    Route::post('modulos/store-basic', [ModuloController::class, 'store']); // Rename para evitar colisión
-    Route::put('modulos/{modulo}', [ModuloController::class, 'updateAdmin']);
-    Route::patch('modulos/{modulo}', [ModuloController::class, 'updateAdmin']);
-    Route::delete('modulos/{modulo}', [ModuloController::class, 'destroyAdmin']);
+    Route::post('modules/store-basic', [ModuloController::class, 'store']); 
+    Route::put('modules/{modulo}', [ModuloController::class, 'updateAdmin']);
+    Route::patch('modules/{modulo}', [ModuloController::class, 'updateAdmin']);
+    Route::delete('modules/{modulo}', [ModuloController::class, 'destroyAdmin']);
     Route::get('modules/{id}/access', [ModuloController::class, 'getAccessByModule']);
 
     // Privilegios
-    Route::get('modulos/{id_modulo}/privilegios', [PrivilegioController::class, 'index']);
-    Route::get('modulos/{id_modulo}/privilegios/matrix', [PrivilegioController::class, 'matrix']);
-    Route::get('modulos/{id_parent}/privilegios/tree-matrix', [PrivilegioController::class, 'treeMatrix']);
-    Route::get('modulos/{id_modulo}/privilegios/catalog', [PrivilegioController::class, 'catalog']);
+    Route::get('modules/{id_modulo}/privilegios', [PrivilegioController::class, 'index']);
+    Route::get('modules/{id_modulo}/privilegios/matrix', [PrivilegioController::class, 'matrix']);
+    Route::get('modules/{id_parent}/privilegios/tree-matrix', [PrivilegioController::class, 'treeMatrix']);
+    Route::get('modules/{id_modulo}/privilegios/catalog', [PrivilegioController::class, 'catalog']);
     
-    Route::post('modulos/{id_modulo}/privilegios', [PrivilegioController::class, 'store']);
-    Route::post('modulos/{id_modulo}/privilegios/bulk', [PrivilegioController::class, 'bulkUpsert']);
-    Route::post('modulos/{id_modulo}/privilegios/matrix', [PrivilegioController::class, 'assignMatrix']);
-    Route::post('modulos/{id_parent}/privilegios/tree-matrix', [PrivilegioController::class, 'assignTreeMatrix']);
-    Route::post('modulos/{id_modulo}/privilegios/catalog-create', [PrivilegioController::class, 'createCatalog']);
-    Route::post('modulos/{id_modulo}/privilegios/catalog-assign', [PrivilegioController::class, 'createForModule']);
+    Route::post('modules/{id_modulo}/privilegios', [PrivilegioController::class, 'store']);
+    Route::post('modules/{id_modulo}/privilegios/bulk', [PrivilegioController::class, 'bulkUpsert']);
+    Route::post('modules/{id_modulo}/privilegios/matrix', [PrivilegioController::class, 'assignMatrix']);
+    Route::post('modules/{id_parent}/privilegios/tree-matrix', [PrivilegioController::class, 'assignTreeMatrix']);
+    Route::post('modules/{id_modulo}/privilegios/catalog-create', [PrivilegioController::class, 'createCatalog']);
+    Route::post('modules/{id_modulo}/privilegios/catalog-assign', [PrivilegioController::class, 'createForModule']);
     
-    Route::put('modulos/privilegios/{id_privilegio}', [PrivilegioController::class, 'update']);
-    Route::patch('modulos/privilegios/{id_privilegio}', [PrivilegioController::class, 'patch']);
-    Route::delete('modulos/privilegios/{id_privilegio}', [PrivilegioController::class, 'destroy']);
-    Route::delete('modulos/privilegios/row/{id_privilegio}', [PrivilegioController::class, 'destroyRow']);
+    Route::put('modules/privilegios/{id_privilegio}', [PrivilegioController::class, 'update']);
+    Route::patch('modules/privilegios/{id_privilegio}', [PrivilegioController::class, 'patch']);
+    Route::delete('modules/privilegios/{id_privilegio}', [PrivilegioController::class, 'destroy']);
+    Route::delete('modules/privilegios/row/{id_privilegio}', [PrivilegioController::class, 'destroyRow']);
 
     // Catálogos Académicos
     Route::get('facultades', [FacultadController::class, 'index']);
@@ -157,45 +160,36 @@ Route::prefix('config/setup')->group(function () {
     Route::get('programas', [ProgramaEstudioController::class, 'index']);
     Route::get('programas/{id}', [ProgramaEstudioController::class, 'show']);
 
-    // Roles y Accesos (Modernizados)
-    Route::get('roles', [RoleController::class, 'index']);
-    Route::get('roles/{id_rol}/modulos-flat', [AccessController::class, 'modulesFlat']);
-    Route::get('roles/{id_rol}/modulos-tree', [AccessController::class, 'modulesTree']);
-    Route::get('roles/{id_rol}/modulos/{id_root}/tree', [AccessController::class, 'modulesTreeByRoot']);
-    Route::get('roles/{id_rol}/modulos-levels', [AccessController::class, 'modulesByLevels']);
-    Route::get('roles/{id_rol}/modulos-level-tree', [AccessController::class, 'modulesLevelTree']);
-    Route::get('roles/{id_rol}/modulos/{id_modulo}/privilegios', [RolePrivilegeController::class, 'assigned']);
+    // Roles y Accesos (Control de Accesos)
+    Route::get('access-control/roles', [RoleController::class, 'index']);
+    Route::get('access-control/roles/{id_rol}/modulos-flat', [AccessController::class, 'modulesFlat']);
+    Route::get('access-control/roles/{id_rol}/modulos-tree', [AccessController::class, 'modulesTree']);
+    Route::get('access-control/roles/{id_rol}/modulos/{id_root}/tree', [AccessController::class, 'modulesTreeByRoot']);
+    Route::get('access-control/roles/{id_rol}/modulos-levels', [AccessController::class, 'modulesByLevels']);
+    Route::get('access-control/roles/{id_rol}/modulos-level-tree', [AccessController::class, 'modulesLevelTree']);
+    Route::get('access-control/roles/{id_rol}/modulos/{id_modulo}/privilegios', [RolePrivilegeController::class, 'assigned']);
     
-    Route::post('roles', [RoleController::class, 'store']);
-    Route::post('roles/{id_rol}/modulos/{id_modulo}/privilegios', [RolePrivilegeController::class, 'store']);
-    Route::match(['put','post'], 'roles/{id_rol}/modulos', [RoleModuleController::class,'sync']);
+    Route::post('access-control/roles', [RoleController::class, 'store']);
+    Route::post('access-control/roles/{id_rol}/modulos/{id_modulo}/privilegios', [RolePrivilegeController::class, 'store']);
+    Route::match(['put','post'], 'access-control/roles/{id_rol}/modulos', [RoleModuleController::class,'sync']);
     
-    Route::put('roles/{id_rol}/status', [RoleController::class, 'updateStatus']);
-    Route::put('roles/{id_rol}', [RoleController::class, 'updateName']);
-    Route::put('roles/{id_rol}/modulos/{id_root}', [AccessController::class, 'syncRoleModulesByRoot']);
-    Route::delete('roles/{id_rol}', [RoleController::class, 'destroy']);
+    Route::put('access-control/roles/{id_rol}/status', [RoleController::class, 'updateStatus']);
+    Route::put('access-control/roles/{id_rol}', [RoleController::class, 'updateName']);
+    Route::put('access-control/roles/{id_rol}/modulos/{id_root}', [AccessController::class, 'syncRoleModulesByRoot']);
+    Route::delete('access-control/roles/{id_rol}', [RoleController::class, 'destroy']);
 });
 
 /*
 |--------------------------------------------------------------------------
-| 5. RUTAS PROTEGIDAS (Middleware auth:api)
+| 6. RUTAS IAM (Identidad y Accesos)
 |--------------------------------------------------------------------------
 */
-Route::middleware('auth:api')->group(function () {
-    Route::get('config/auth/me', [AuthController::class, 'me']);
-});
-
-/*
-|--------------------------------------------------------------------------
-| 6. RUTAS LEGACY (Compatibilidad)
-|--------------------------------------------------------------------------
-*/
-Route::prefix('v1/config')->group(function () {
+Route::prefix('iam')->group(function () {
     Route::get('roles', [RoleController::class, 'index']);
     Route::get('roles/{id_rol}/modulos-flat', [AccessController::class, 'modulesFlat']);
     Route::get('roles/{id_rol}/modulos-tree', [AccessController::class, 'modulesTree']);
     Route::get('roles/{id_rol}/modulos/{id_root}/tree', [AccessController::class, 'modulesTreeByRoot']);
-    Route::get('modulos/{id_modulo}/privilegios', [RolePrivilegeController::class, 'catalogByModule']);
+    Route::get('modules/{id_modulo}/privilegios', [RolePrivilegeController::class, 'catalogByModule']);
     Route::get('roles/{id_rol}/modulos/{id_modulo}/privilegios', [RolePrivilegeController::class, 'assigned']);
     
     Route::post('roles', [RoleController::class, 'store']);
@@ -206,19 +200,15 @@ Route::prefix('v1/config')->group(function () {
     Route::put('roles/{id_rol}', [RoleController::class, 'updateName']);
     Route::put('roles/{id_rol}/modulos/{id_root}', [AccessController::class, 'syncRoleModulesByRoot']);
     Route::delete('roles/{id_rol}', [RoleController::class, 'destroy']);
-});
 
-Route::prefix('management')->group(function () {
-    Route::get('/users', [UserAccessController::class, 'searchUsuario']);
-    Route::get('/users/{id}/accesses', [UserAccessController::class, 'index']);
-    Route::get('/campus', [AcademicCatalogController::class, 'campus']);
-    Route::get('/facultades', [AcademicCatalogController::class, 'facultades']);
-    Route::get('/programas-estudio', [AcademicCatalogController::class, 'programasEstudio']);
-    Route::get('/user-access/reports', [AcademicCatalogController::class, 'getAllAccessReports']);
-    Route::get('users/search', [UserRoleController::class, 'search']);
-    Route::get('users/{id_persona}/roles', [UserRoleController::class, 'assignedToUser']);
+    // Gestión de Usuarios y Accesos Directos
+    Route::get('user-access/search', [UserAccessController::class, 'searchUsuario']);
+    Route::get('user-access/{id}/list', [UserAccessController::class, 'index']);
+    Route::get('user-access/reports', [AcademicCatalogController::class, 'getAllAccessReports']);
+    Route::get('role-assignment/search', [UserRoleController::class, 'search']);
+    Route::get('role-assignment/{id_persona}/roles', [UserRoleController::class, 'assignedToUser']);
     
-    Route::post('/users/{id}/accesses', [UserAccessController::class, 'store']);
-    Route::post('/roles/useusersrs/{id_persona}/roles', [UserRoleController::class, 'saveForUser']);
-    Route::delete('/users/{id}/accesses/{aid}', [UserAccessController::class, 'destroy']);
+    Route::post('user-access/{id}/save', [UserAccessController::class, 'store']);
+    Route::post('role-assignment/{id_persona}/roles', [UserRoleController::class, 'saveForUser']);
+    Route::delete('user-access/{id}/delete/{aid}', [UserAccessController::class, 'destroy']);
 });
