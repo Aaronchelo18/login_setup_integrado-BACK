@@ -147,14 +147,19 @@ Route::prefix('application-management')->group(function () {
 Route::prefix('iam')->group(function () {
     // Reportes para Dashboard
     Route::get('user-access/reports', [AcademicCatalogController::class, 'getAllAccessReports']);
-    Route::get('roles', [RoleController::class, 'index']); // Para los selectores de roles rápidos
+    Route::get('roles', [RoleController::class, 'index']); 
 
-    // Gestión de Usuarios (Role Assignment)
-    Route::get('role-assignment/users', [UserInfoController::class, 'index']);
+    // GESTIÓN DE USUARIOS (Usando tu UserRoleController con efeso.usuario)
+    // Cambiamos UserInfoController por UserRoleController que es el que tiene la data real
+    Route::get('role-assignment/users', [UserRoleController::class, 'index']); 
+    
+    // Si el front usa el buscador, apuntamos al método search de tu controlador
+    Route::get('role-assignment/search', [UserRoleController::class, 'search']); 
+
     Route::get('role-assignment/{id_persona}/roles', [UserRoleController::class, 'assignedToUser']);
     Route::post('role-assignment/{id_persona}/roles', [UserRoleController::class, 'saveForUser']);
 
-    // Accesos a Usuarios
+    // Accesos a Usuarios (Otras rutas)
     Route::get('user-access/search', [UserAccessController::class, 'searchUsuario']);
     Route::get('user-access/{id}/list', [UserAccessController::class, 'index']);
     Route::post('user-access/{id}/save', [UserAccessController::class, 'store']);

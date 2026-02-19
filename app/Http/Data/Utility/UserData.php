@@ -10,14 +10,45 @@ use Throwable;
 class UserData
 {
   
-    public static function getAllUsers(): array
+public static function getAllUsers(): array
     {
         try {
-            $query = "SELECT id, name, email, email_verified_at, created_at, updated_at FROM users ORDER BY created_at DESC";
-            $users = DB::select($query);
-            return ['success' => true, 'data' => $users];
+            // Recibimos el parámetro 'q' de la URL para filtrar
+            $q = request()->query('q');
+
+            // Buscamos en la tabla de personas para que aparezca JOZEF (ID 1465, etc.)
+            // Ajusta 'persona' al nombre real de tu tabla
+            $query = DB::table('persona')
+                ->select(
+                    'id_persona', 
+                    'nombre', 
+                    'paterno', 
+                    'materno', 
+                    DB::raw("CONCAT(nombre, ' ', paterno, ' ', materno) as display_name")
+                );
+
+            if (!empty($q)) {
+                $query->where(function($sql) use ($q) {
+                    $sql->where('nombre', 'like', "%$q%")
+                        ->orWhere('paterno', 'like', "%$q%")
+                        ->orWhere('materno', 'like', "%$q%");
+                });
+            }
+
+            $users = $query->orderBy('paterno', 'asc')->paginate(request()->query('per_page', 10));
+
+            return [
+                'success' => true, 
+                'data' => $users->items(),
+                'meta' => [
+                    'total' => $users->total(),
+                    'current_page' => $users->currentPage(),
+                    'last_page' => $users->lastPage(),
+                    'per_page' => $users->perPage(),
+                ]
+            ];
         } catch (Throwable $e) {
-            return ['success' => false, 'message' => 'Error al obtener los usuarios: ' . $e->getMessage()];
+            return ['success' => false, 'message' => 'Error: ' . $e->getMessage()];
         }
     }
 
