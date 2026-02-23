@@ -9,10 +9,6 @@ use Throwable;
 
 class ModuloData
 {
-    /**
-     * Obtiene los módulos raíz asociados a una persona según sus roles.
-     * Basado en el query: efeso.usuario -> usuario_rol -> rol -> rol_modulo -> modulo
-     */
    public static function getAll($idPersona = null): array
     {
         try {
@@ -20,7 +16,6 @@ class ModuloData
                 return ['success' => false, 'message' => 'ID de persona no proporcionado.'];
             }
 
-            // Usamos el esquema efeso tal como está en tu base de datos
             $rows = DB::table('efeso.usuario as u')
                 ->join('efeso.usuario_rol as ur', 'u.id_persona', '=', 'ur.id_persona')
                 ->join('efeso.rol as r', 'ur.id_rol', '=', 'r.id_rol')
@@ -30,7 +25,7 @@ class ModuloData
                     'm.id_modulo',
                     'm.id_parent',
                     DB::raw('(m.nivel)::int AS nivel'),
-                    'm.nombre', // Aseguramos que devuelva 'nombre' para el Front
+                    'm.nombre',
                     'm.url',
                     'm.imagen',
                     'm.estado'
@@ -49,7 +44,6 @@ class ModuloData
             return ['success' => false, 'message' => 'Error al obtener módulos: ' . $e->getMessage()];
         }
     }
-
 
     // GET /api/modulo/admin-list
     public static function listAllAdmin(): array
@@ -89,10 +83,8 @@ public static function storeAdmin(array $params): array
             'nivel'     => $params['nivel'] ?? 0, 
         ];
 
-        // Insertar y obtener el ID generado
         $id = DB::table('efeso.modulo')->insertGetId($dataToInsert);
 
-        // Recuperar el registro para confirmación
         $newRecord = DB::table('efeso.modulo')
             ->where('id_modulo', $id)
             ->first();
@@ -109,19 +101,16 @@ public static function updateAdmin(int $id, array $params): array
 {
     try {
         $dataToUpdate = [];
-        // Definimos qué campos permitimos
         $fields = ['nombre', 'url', 'imagen', 'estado', 'id_parent'];
 
         foreach ($fields as $field) {
             if (array_key_exists($field, $params)) {
                 $value = $params[$field];
 
-                // Normalizar el estado: Convertir true/false o "1"/"0" a entero 1/0
                 if ($field === 'estado') {
                     $value = ($value === true || $value === 1 || $value === '1') ? 1 : 0;
                 }
                 
-                // Evitar que el id_parent sea null si la DB no lo permite
                 if ($field === 'id_parent' && is_null($value)) {
                     $value = 0;
                 }
@@ -130,7 +119,6 @@ public static function updateAdmin(int $id, array $params): array
             }
         }
 
-        // Ejecutar el update filtrando por id_modulo
         DB::table('efeso.modulo')
             ->where('id_modulo', $id)
             ->update($dataToUpdate);
@@ -140,7 +128,6 @@ public static function updateAdmin(int $id, array $params): array
         return ['success' => true, 'data' => $updatedRecord];
 
     } catch (\Throwable $e) {
-        // El error 500 se captura aquí. El mensaje te dirá exactamente qué columna falla.
         return ['success' => false, 'message' => 'Error en DB: ' . $e->getMessage()];
     }
 }
@@ -436,39 +423,47 @@ public static function deleteAdmin(int $id): array
         return $node;
     }
 
-    public static function createChildInHierarchy(array $data): array
-    {
-        $v = Validator::make($data, [
-            'parent_id' => 'required|integer',
-            'nombre'    => 'required|string|max:128',
-            'url'       => 'nullable|string|max:264',
-            'imagen'    => 'nullable|string|max:128',
-            'estado'    => 'nullable|in:0,1',
-        ]);
+public static function createChildInHierarchy(array $data): array
+{
+    $v = Validator::make($data, [
+        'id_parent' => 'required|integer', 
+        'nombre'    => 'required|string|max:128',
+        'url'       => 'nullable|string|max:264',
+        'imagen'    => 'nullable|string|max:128',
+        'estado'    => 'nullable|in:0,1',
+    ]);
 
-        if ($v->fails()) return ['success' => false, 'message' => 'Datos inválidos.', 'errors' => $v->errors()];
+    if ($v->fails()) return ['success' => false, 'errors' => $v->errors()];
 
-        try {
-            $payload = $v->validated();
-            $parent = DB::table('efeso.modulo')->select('id_modulo', DB::raw('(nivel)::int AS nivel'))
-                ->where('id_modulo', (int)$payload['parent_id'])->first();
+    try {
+        $payload = $v->validated();
+        $parentId = (int)$payload['id_parent'];
+        
+        $nivel = 0;
+        if ($parentId !== 0) {
+            $parent = DB::table('efeso.modulo')
+                ->select(DB::raw('(nivel)::int AS nivel'))
+                ->where('id_modulo', $parentId)
+                ->first();
 
             if (!$parent) return ['success' => false, 'message' => 'Padre no encontrado'];
-
-            $newId = DB::table('efeso.modulo')->insertGetId([
-                'id_parent' => (int)$payload['parent_id'],
-                'nombre'    => $payload['nombre'],
-                'nivel'     => (int)$parent->nivel + 1,
-                'url'       => $payload['url'] ?? null,
-                'imagen'    => $payload['imagen'] ?? null,
-                'estado'    => $payload['estado'] ?? '1',
-            ], 'id_modulo');
-
-            return self::show($newId);
-        } catch (Throwable $e) {
-            return ['success' => false, 'message' => $e->getMessage()];
+            $nivel = (int)$parent->nivel + 1;
         }
+
+        $newId = DB::table('efeso.modulo')->insertGetId([
+            'id_parent' => $parentId,
+            'nombre'    => $payload['nombre'],
+            'nivel'     => $nivel,
+            'url'       => $payload['url'] ?? null,
+            'imagen'    => $payload['imagen'] ?? 'default.png',
+            'estado'    => $payload['estado'] ?? '1',
+        ], 'id_modulo');
+
+        return self::show($newId);
+    } catch (Throwable $e) {
+        return ['success' => false, 'message' => $e->getMessage()];
     }
+}
 
     public static function updateHierarchyNode(int $id, array $payload, bool $isPatch = false): array
     {

@@ -17,7 +17,6 @@ class ModuloController extends Controller
     // SIDEBAR GET ID_PERSONA
     public function index(Request $request)
     {
-        // Capturamos el id_persona enviado desde Angular
         $idPersona = $request->query('id_persona');
 
         if (!$idPersona) {
@@ -31,11 +30,9 @@ class ModuloController extends Controller
             : $this->error($r['message'], 500);
     }
 
-
     // GET /api/modulo/admin-list
     public function listAllAdmin(Request $request)
 {
-    // Llamamos a la nueva función sin pasarle parámetros de persona
     $r = ModuloData::listAllAdmin(); 
     
     return $r['success'] 
@@ -48,7 +45,6 @@ public function storeAdmin(Request $request)
 {
     $params = $request->all();
 
-    // Validaciones básicas de campos obligatorios
     if (empty($params['nombre'])) {
         return $this->error('El nombre del módulo es obligatorio', 400);
     }
@@ -65,7 +61,6 @@ public function updateAdmin(Request $request, $id)
 {
     $params = $request->all();
     
-    // Si sigue dando 422, comenta cualquier validación que tengas arriba de esto
     $r = ModuloData::updateAdmin((int)$id, $params);
 
     return $r['success'] 
@@ -76,12 +71,11 @@ public function updateAdmin(Request $request, $id)
     // DELETE /api/config/setup/modulos/{id}
 public function destroyAdmin($id)
 {
-    // Llamamos a la lógica en el Data
     $r = ModuloData::deleteAdmin($id);
 
     return $r['success'] 
         ? $this->ok(null, 'Módulo eliminado correctamente') 
-        : $this->error($r['message'], 400); // 400 si hay hijos o error
+        : $this->error($r['message'], 400); 
 }
 
 
